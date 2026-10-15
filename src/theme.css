@@ -1,29 +1,47 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap");
 
+/* Palette from Tune Tech's own brand:
+   - logo red #EC2129 and logo yellow #FFF200 (Files/Images/logo.png)
+   - espresso #201311 of the current site's header bar, crimson #C71633 of its nav bar
+   - gold #FBB60F and maroon #4A1818 of its buttons
+   - navy #283363 and orange #E0682A of the fascia stripe on the shop building
+   Enhanced: yellow softened to #FFD83A for text/buttons on dark, a warm paper neutral,
+   and a deeper red #C8141C for text on light backgrounds (contrast). */
 :root {
-  --ink: #102a43;
-  --ink-2: #173554;
-  --steel: #1b6ca8;
-  --accent: #4cc9f0;
-  --accent-ink: #102a43;
-  --accent-hover: #6cd3f3;
-  --accent-deep: #41adce;
-  --accent-soft: #9de1f7;
-  --accent-glow: rgba(76, 201, 240, 0.18);
-  --steel-glow: rgba(27, 108, 168, 0.5);
-  --paper: #f3f6f8;
+  --ink: #201311;
+  --ink-2: #2c1a17;
+  --espresso: #201311;
+  --red: #ec2129;
+  --red-deep: #c8141c;
+  --crimson: #c71633;
+  --orange: #f0772a;
+  --yellow: #ffd83a;
+  --logo-yellow: #fff200;
+  --gold: #fbb60f;
+  --maroon: #4a1818;
+  --navy: #283363;
+  --steel: var(--red-deep);
+  --accent: var(--yellow);
+  --accent-ink: #201311;
+  --accent-hover: #ffe46b;
+  --accent-deep: var(--gold);
+  --accent-soft: #ffe58a;
+  --paper: #f7f3ee;
+  --paper-2: #efe8df;
   --card: #ffffff;
-  --card-hover: #f4fcfe;
-  --muted: #768694;
-  --faint: #98a4b0;
-  --label: #405569;
-  --line: rgba(16, 42, 67, 0.14);
-  --line-light: rgba(255, 255, 255, .16);
-  --header-bg: rgba(16, 42, 67, 0.9);
-  --deep: #0a1b2c;
-  --deep-line: #45596c;
-  --on-dark: #cad0d6;
-  --on-dark-2: #a4aeb8;
-  --on-dark-strong: #e7eaec;
+  --card-hover: #fffaf0;
+  --muted: #6c5f5a;
+  --faint: #9a8d87;
+  --label: #5a4a45;
+  --line: rgba(32, 19, 17, 0.13);
+  --line-light: rgba(255, 255, 255, .14);
+  --header-bg: #201311;
+  --deep: #170d0c;
+  --deep-line: #4a3430;
+  --on-dark: #d8cdc8;
+  --on-dark-2: #ab9d97;
+  --on-dark-strong: #f4ece8;
+  --heading-font: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body-font: "Barlow", system-ui, sans-serif;
   background: var(--paper);
 }

@@ -188,19 +188,68 @@ function ConceptWidget() {
 }
 
 // -----------------------------------------------------------------------------
+// SIGNATURE MOTIFS: the red / orange / yellow fascia stripe from the shop
+// building, and the tachometer from the Tune Tech logo.
+// -----------------------------------------------------------------------------
+
+function Fascia({ className = "" }) {
+  return <div className={`fascia ${className}`} aria-hidden="true"><span /><span /><span /><span /></div>;
+}
+
+function Tach({ value, label, sub }) {
+  // A 240° gauge sweeping from 7 to 5 o'clock, ticks every 10 years up to 60.
+  const max = 60;
+  const start = -210;
+  const sweep = 240;
+  const angle = start + (Math.min(value, max) / max) * sweep;
+  const cx = 120, cy = 120, r = 96;
+  const pt = (deg, rad) => [cx + rad * Math.cos((deg * Math.PI) / 180), cy + rad * Math.sin((deg * Math.PI) / 180)];
+  const arc = (from, to, rad) => {
+    const [x1, y1] = pt(from, rad);
+    const [x2, y2] = pt(to, rad);
+    return `M ${x1} ${y1} A ${rad} ${rad} 0 ${to - from > 180 ? 1 : 0} 1 ${x2} ${y2}`;
+  };
+  const zones = [["var(--yellow)", 0, 0.5], ["var(--orange)", 0.5, 0.78], ["var(--red)", 0.78, 1]];
+  const ticks = Array.from({ length: max / 2 + 1 }, (_, i) => i * 2);
+  const [nx, ny] = pt(angle, r - 22);
+  return (
+    <figure className="tach" aria-label={`${value} years serving Aurora`}>
+      <svg viewBox="0 0 240 240" role="img" aria-hidden="true">
+        <circle cx={cx} cy={cy} r="116" className="tach-face" />
+        {zones.map(([color, a, b]) => <path key={color} d={arc(start + a * sweep + 1, start + b * sweep - 1, r + 6)} stroke={color} strokeWidth="9" fill="none" />)}
+        {ticks.map((t) => {
+          const deg = start + (t / max) * sweep;
+          const major = t % 10 === 0;
+          const [x1, y1] = pt(deg, r - 4);
+          const [x2, y2] = pt(deg, r - (major ? 16 : 9));
+          const [lx, ly] = pt(deg, r - 28);
+          return (
+            <g key={t}>
+              <line x1={x1} y1={y1} x2={x2} y2={y2} className={major ? "tick major" : "tick"} />
+              {major && <text x={lx} y={ly + 4} className="tick-label">{t}</text>}
+            </g>
+          );
+        })}
+        <line x1={cx} y1={cy} x2={nx} y2={ny} className="needle" />
+        <circle cx={cx} cy={cy} r="9" className="hub" />
+      </svg>
+      <figcaption>
+        <strong>{value}</strong>
+        <span>{label}</span>
+        {sub && <small>{sub}</small>}
+      </figcaption>
+    </figure>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // HEADER
 // -----------------------------------------------------------------------------
 
-function BrandMark() {
-  const Icon = SITE.BRAND.icon;
-  return <span className="brand-mark" aria-hidden="true"><Icon strokeWidth={2} /></span>;
-}
-
 function Brand({ onClick }) {
   return (
-    <a className="brand" href="#home" onClick={onClick} aria-label={`${COMPANY} home`}>
-      <BrandMark />
-      <span className="brand-text"><strong>{SITE.BRAND.name}</strong><small>{SITE.BRAND.sub}</small></span>
+    <a className="brand brand-logo" href="#home" onClick={onClick} aria-label={`${COMPANY} home`}>
+      <img src={SITE.BRAND.logo} alt={SITE.BRAND.logoAlt || COMPANY} width="370" height="56" />
     </a>
   );
 }
@@ -208,11 +257,11 @@ function Brand({ onClick }) {
 function navItems() {
   return [
     ["#services", "Services"],
-    SITE.FEATURE && [`#${SITE.FEATURE.id}`, SITE.FEATURE.nav],
+    ["#specials", "Specials"],
     ["#about", SITE.ABOUT.nav || "About"],
     ["#reviews", "Reviews"],
     ["#visit", SITE.VISIT.nav || "Visit"],
-  ].filter(Boolean);
+  ];
 }
 
 function SiteHeader() {
@@ -224,7 +273,7 @@ function SiteHeader() {
       <div className="announce">
         <div className="container announce-inner">
           <span>{SITE.ANNOUNCE}</span>
-          <a href={`tel:${PHONE}`}><Phone size={13} /> {PHONE_DISPLAY}</a>
+          <span className="announce-hours"><Clock size={13} /> {SITE.HOURS_SHORT}</span>
         </div>
       </div>
       <header className="header">
@@ -234,11 +283,13 @@ function SiteHeader() {
             {navItems().map(([href, label]) => <a key={href} href={href} onClick={closeMenu}>{label}</a>)}
             <a className="links-cta" href="#book" onClick={closeMenu}>{SITE.BOOK.nav}</a>
           </nav>
-          <a className="nav-cta" href="#book">{SITE.BOOK.nav} <ArrowUpRight size={17} /></a>
+          <a className="nav-phone" href={`tel:${PHONE}`}><Phone size={16} /> {PHONE_DISPLAY}</a>
+          <a className="nav-cta" href="#book">{SITE.BOOK.nav}</a>
           <button className="mobile-toggle" type="button" aria-label="Toggle navigation" aria-expanded={menu} onClick={() => setMenu((current) => !current)}>
             {menu ? <X /> : <Menu />}
           </button>
         </div>
+        <Fascia />
       </header>
     </div>
   );
@@ -252,53 +303,86 @@ function Hero({ rating }) {
   const { HERO } = SITE;
   return (
     <section className="hero">
-      <div className="hero-grid" aria-hidden="true" />
+      <div className="hero-plate" aria-hidden="true" />
       <div className="container hero-inner">
         <div className="hero-copy">
           <span className="eyebrow light">{HERO.eyebrow}</span>
-          <h1><Title parts={HERO.title} /></h1>
+          <h1><span>{HERO.title[0]}</span> <em>{HERO.title[1]}</em></h1>
           <p>{HERO.text}</p>
           <div className="hero-actions">
-            <a className="btn primary" href="#book">{HERO.cta} <ArrowUpRight size={19} /></a>
-            <a className="btn ghost" href={`tel:${PHONE}`}><Phone size={18} /> {PHONE_DISPLAY}</a>
+            <a className="btn primary" href={`tel:${PHONE}`}><Phone size={18} /> Call {PHONE_DISPLAY}</a>
+            <a className="btn ghost" href="#book">{HERO.cta} <ArrowUpRight size={18} /></a>
           </div>
         </div>
-        <aside className="hero-card" aria-label="At a glance">
-          {rating ? (
-            <a className="hero-rating" href={rating.googleMapsUri || GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer">
-              <span className="stars" aria-hidden="true">★★★★★</span>
-              <strong>{rating.rating.toFixed(1)}</strong>
-              <span>on Google · {rating.userRatingCount.toLocaleString()} reviews</span>
-            </a>
-          ) : (
-            <div className="hero-rating">
-              <span className="stars" aria-hidden="true">{HERO.badgeKicker}</span>
-              <strong>{HERO.badgeBig}</strong>
-              <span>{HERO.badgeSmall}</span>
-            </div>
-          )}
-          <ul>
-            {HERO.card.map(({ icon: Icon, title, text }) => (
-              <li key={title}><Icon size={18} /><span><b>{title}</b>{text}</span></li>
-            ))}
-          </ul>
-        </aside>
+        <Tach value={SITE.YEARS} label="Years on Colfax" />
       </div>
-      <div className="container stats">
-        {SITE.STATS(rating).map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
+      <figure className="hero-photo">
+        <img src={HERO.photo.src} alt={HERO.photo.alt} width="1600" height="402" fetchPriority="high" />
+      </figure>
+      <div className="dash">
+        <div className="container dash-inner">
+          <div><Clock size={18} /><span><small>OPEN</small>Mon–Fri · 7:30–5:00</span></div>
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAPS_QUERY)}`} target="_blank" rel="noopener noreferrer"><MapPin size={18} /><span><small>FIND US</small>{ADDRESS}, Aurora</span></a>
+          {rating && (
+            <a href={rating.googleMapsUri || GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer"><span className="dash-stars" aria-hidden="true">★</span><span><small>GOOGLE</small>{rating.rating.toFixed(1)} · {rating.userRatingCount.toLocaleString()} reviews</span></a>
+          )}
+          <div><BadgeCheck size={18} /><span><small>WARRANTY</small>24 mo / 24,000 mi</span></div>
+        </div>
       </div>
     </section>
   );
 }
 
-function Offers() {
-  if (!SITE.OFFERS?.length) return null;
+function Awards({ rating }) {
+  const { AWARDS } = SITE;
   return (
-    <div className="offer-strip" style={{ "--offer-cols": SITE.OFFERS.length }}>
-      <div className="container">
-        {SITE.OFFERS.map(([title, text]) => <article key={title}><strong>{title}</strong><span>{text}</span></article>)}
+    <section className="awards" aria-label="Certifications and recognition">
+      <div className="container awards-inner">
+        <span className="eyebrow">{AWARDS.eyebrow}</span>
+        <ul className="awards-list">
+          {AWARDS.items.map(({ img, title, text }) => (
+            <li key={title}><img src={img} alt={title} /><span><b>{title}</b>{text}</span></li>
+          ))}
+          <li className="award-anniv">
+            <span className="anniv-badge" aria-hidden="true"><strong>{SITE.YEARS}</strong><small>years</small></span>
+            <span><b>Celebrating {SITE.YEARS} years</b>Serving our community since {FOUNDED}</span>
+          </li>
+          {rating && (
+            <li>
+              <span className="google-badge" aria-hidden="true"><strong>{rating.rating.toFixed(1)}</strong><span>★★★★★</span></span>
+              <span><b>Rated on Google</b>{rating.userRatingCount.toLocaleString()} reviews</span>
+            </li>
+          )}
+        </ul>
       </div>
-    </div>
+    </section>
+  );
+}
+
+function Specials() {
+  const { OFFERS } = SITE;
+  return (
+    <section className="section specials" id="specials">
+      <div className="container">
+        <div className="specials-head">
+          <span className="eyebrow">{OFFERS.eyebrow}</span>
+          <h2>{OFFERS.title}</h2>
+        </div>
+        <div className="coupons">
+          {OFFERS.items.map(({ big, unit, title, lines, fine }) => (
+            <article className="coupon" key={title}>
+              <div className="coupon-value"><strong>{big}</strong><span>{unit}</span></div>
+              <div className="coupon-body">
+                <h3>{title}</h3>
+                <ul>{lines.map((line) => <li key={line}>{line}</li>)}</ul>
+                {fine && <small>{fine}</small>}
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="specials-note">{OFFERS.note}</p>
+      </div>
+    </section>
   );
 }
 
@@ -309,62 +393,33 @@ function Services() {
       <div className="container">
         <div className="section-head">
           <div>
-            <span className="eyebrow">{SERVICES.eyebrow}</span>
-            <h2><Title parts={SERVICES.title} /></h2>
+            <span className="eyebrow light">{SERVICES.eyebrow}</span>
+            <h2><span>{SERVICES.title[0]}</span> <em>{SERVICES.title[1]}</em></h2>
           </div>
           <p>{SERVICES.text}</p>
         </div>
-        <div className="services-grid">
-          {SERVICES.items.map(({ title, desc, icon: Icon }, index) => (
-            <article className="service-card" key={title}>
-              <div className="service-top">
-                <span className="service-icon"><Icon size={24} strokeWidth={1.6} /></span>
-                <span className="service-num">{String(index + 1).padStart(2, "0")}</span>
-              </div>
-              <h3>{title}</h3>
-              <p>{desc}</p>
-              <a href="#book" data-service={title}>{SERVICES.cta} <ArrowRight size={15} /></a>
-            </article>
+        <div className="service-photos">
+          {SERVICES.photos.map(({ src, label, alt }) => (
+            <figure key={src}><img src={src} alt={alt} loading="lazy" width="800" height="800" /><figcaption>{label}</figcaption></figure>
           ))}
         </div>
-        {SERVICES.chips && (
-          <div className="chips-wrap">
-            <div>
-              <h3>{SERVICES.chips.title}</h3>
-              {SERVICES.chips.note && <p>{SERVICES.chips.note}</p>}
-            </div>
-            <div className="chips">{SERVICES.chips.items.map((item) => <span key={item}>{item}</span>)}</div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function Feature() {
-  const { FEATURE } = SITE;
-  if (!FEATURE) return null;
-  return (
-    <section className="section feature" id={FEATURE.id}>
-      <div className="container">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow light">{FEATURE.eyebrow}</span>
-            <h2><Title parts={FEATURE.title} /></h2>
-          </div>
-          <p>{FEATURE.text}</p>
-        </div>
-        <div className={`feature-grid${FEATURE.cards.length === 3 ? " cols-3" : ""}`}>
-          {FEATURE.cards.map(({ name, icon: Icon, tone, lead, items }) => (
-            <article className="feature-card" key={name} style={tone ? { "--tone": tone } : undefined}>
-              <span className="feature-icon"><Icon size={26} strokeWidth={1.5} /></span>
-              <h3>{name}</h3>
-              <p>{lead}</p>
-              <ul>
-                {items.map((item) => <li key={item}><CheckCircle2 size={15} /> {item}</li>)}
-              </ul>
-            </article>
+        <div className="services-list">
+          {SERVICES.items.map(({ title, desc, icon: Icon }) => (
+            <a className="service-row" key={title} href="#book" data-service={title}>
+              <Icon size={22} strokeWidth={1.7} aria-hidden="true" />
+              <span><strong>{title}</strong>{desc}</span>
+              <ArrowRight size={18} className="service-go" aria-hidden="true" />
+            </a>
           ))}
+          <a className="service-row service-call" href={`tel:${PHONE}`}>
+            <Phone size={22} strokeWidth={1.9} aria-hidden="true" />
+            <span><strong>Not sure what it is?</strong>Call {PHONE_DISPLAY} and describe what the car is doing.</span>
+            <ArrowRight size={18} className="service-go" aria-hidden="true" />
+          </a>
+        </div>
+        <div className="makes">
+          <h3>{SERVICES.makes.title}</h3>
+          <div className="chips">{SERVICES.makes.items.map((item) => <span key={item}>{item}</span>)}<em>{SERVICES.makes.note}</em></div>
         </div>
       </div>
     </section>
@@ -374,54 +429,61 @@ function Feature() {
 function Process() {
   const { PROCESS } = SITE;
   return (
-    <section className="section process">
-      <div className="container">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">{PROCESS.eyebrow}</span>
-            <h2><Title parts={PROCESS.title} /></h2>
-          </div>
-          <p>{PROCESS.text}</p>
+    <section className="process">
+      <div className="container process-inner">
+        <div>
+          <span className="eyebrow light">{PROCESS.eyebrow}</span>
+          <h2><span>{PROCESS.title[0]}</span> <em>{PROCESS.title[1]}</em></h2>
         </div>
-        <div className="process-grid">
+        <ol className="process-steps">
           {PROCESS.steps.map(([title, description], index) => (
-            <article key={title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
+            <li key={title}>
+              <span className="gear">{index + 1}</span>
               <h3>{title}</h3>
               <p>{description}</p>
-            </article>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );
 }
 
 function About() {
-  const { ABOUT } = SITE;
+  const { ABOUT, WARRANTY } = SITE;
   return (
     <section className="section about" id="about">
       <div className="container about-inner">
-        <div className="about-media" aria-hidden="true">
-          <div className="about-quads">
-            {ABOUT.tiles.map(({ label, icon: Icon, tone }) => (
-              <span className="about-quad" key={label} style={tone ? { "--tone": tone } : undefined}><Icon size={34} strokeWidth={1.4} /><small>{label}</small></span>
-            ))}
-          </div>
-          <div className="about-badge"><strong>{ABOUT.badge[0]}</strong><span>{ABOUT.badge[1]}</span></div>
-        </div>
-        <div>
+        <figure className="about-photo">
+          <img src={ABOUT.photo.src} alt={ABOUT.photo.alt} loading="lazy" width="360" height="481" />
+          <figcaption>{ABOUT.caption}</figcaption>
+        </figure>
+        <div className="about-copy">
           <span className="eyebrow">{ABOUT.eyebrow}</span>
-          <h2><Title parts={ABOUT.title} /></h2>
+          <h2><span>{ABOUT.title[0]}</span> <em>{ABOUT.title[1]}</em></h2>
           {ABOUT.text.map((paragraph) => <p className="about-lead" key={paragraph.slice(0, 24)}>{paragraph}</p>)}
           <div className="credentials">
             {ABOUT.credentials.map(({ title, desc }) => (
               <div key={title}>
-                <BadgeCheck size={22} strokeWidth={1.6} />
-                <span><strong>{title}</strong>{desc}</span>
+                <strong>{title}</strong>
+                <span>{desc}</span>
               </div>
             ))}
           </div>
+        </div>
+      </div>
+      <div className="container">
+        <div className="warranty">
+          <div className="warranty-figs">
+            <span><strong>{WARRANTY.big[0]}</strong>{WARRANTY.big[1]}</span>
+            <i aria-hidden="true">/</i>
+            <span><strong>{WARRANTY.big2[0]}</strong>{WARRANTY.big2[1]}</span>
+          </div>
+          <div>
+            <span className="eyebrow">{WARRANTY.eyebrow}</span>
+            <p>{WARRANTY.text}</p>
+          </div>
+          <img src={SITE.AWARDS.items[0].img} alt="NAPA AutoCare Center" loading="lazy" />
         </div>
       </div>
     </section>
@@ -434,58 +496,67 @@ function Reviews({ data, rating }) {
   return (
     <section className="section reviews" id="reviews">
       <div className="container">
-        <div className="section-head">
+        <div className="reviews-top">
           <div>
             <span className="eyebrow">CUSTOMER REVIEWS</span>
-            <h2>{rating ? <>Rated {rating.rating.toFixed(1)} by <em>{rating.userRatingCount.toLocaleString()} customers.</em></> : <Title parts={REVIEWS.title} />}</h2>
+            <h2><span>{REVIEWS.title[0]}</span> <em>{REVIEWS.title[1]}</em></h2>
           </div>
-          <p>{REVIEWS.text}</p>
-        </div>
-        <div className="reviews-summary">
-          <div>
-            <span className="google-wordmark">Google</span>
+          <div className="reviews-summary">
             {rating ? (
               <>
-                <strong>{rating.rating.toFixed(1)} <span className="stars">★★★★★</span></strong>
-                <span>{rating.userRatingCount.toLocaleString()} Google reviews</span>
+                <strong>{rating.rating.toFixed(1)}</strong>
+                <span><span className="stars" aria-hidden="true">★★★★★</span>{rating.userRatingCount.toLocaleString()} Google reviews</span>
               </>
-            ) : (
-              <span>See what customers say about {COMPANY} on Google.</span>
-            )}
-          </div>
-          <div className="reviews-actions">
+            ) : <span>See what customers say on Google.</span>}
             <a className="btn dark" href={rating?.googleMapsUri || GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer">Read reviews on Google <ArrowUpRight size={17} /></a>
-            {GOOGLE_WRITE_REVIEW_URL && <a className="btn outline" href={GOOGLE_WRITE_REVIEW_URL} target="_blank" rel="noopener noreferrer">Leave a review</a>}
           </div>
         </div>
         {reviews.length > 0 ? (
           <>
-            <div className="reviews-grid">
-              {reviews.slice(0, 3).map((review, i) => (
-                <article className="review-card" key={`${review.publishTime || i}-${i}`}>
+            <div className="quotes-grid">
+              {reviews.slice(0, 6).map((review, i) => (
+                <article className="quote-card" key={`${review.publishTime || i}-${i}`}>
                   <div className="stars" aria-label={`${review.rating} out of 5 stars`}>{"★".repeat(Math.max(0, Math.min(5, Math.round(review.rating || 0))))}</div>
-                  <p>{review.text?.text || review.originalText?.text}</p>
-                  <footer>
-                    <strong>{review.authorAttribution?.displayName || "Google reviewer"}</strong>
-                    <small>{review.relativePublishTimeDescription}</small>
-                  </footer>
+                  <blockquote>{review.text?.text || review.originalText?.text}</blockquote>
+                  <footer>{review.authorAttribution?.displayName || "Google reviewer"}<small>Google review · {review.relativePublishTimeDescription}</small></footer>
                 </article>
               ))}
             </div>
             <p className="reviews-attribution">Reviews provided by Google. A limited selection is displayed.</p>
           </>
-        ) : REVIEWS.quotes?.length > 0 && (
-          <>
-            <div className="quotes-grid">
-              {REVIEWS.quotes.map(([text, name]) => (
-                <article className="quote-card" key={name}>
-                  <blockquote>{text}</blockquote>
-                  <footer>{name}<small>{REVIEWS.quoteSource}</small></footer>
-                </article>
-              ))}
-            </div>
-          </>
+        ) : (
+          <div className="quotes-grid">
+            {REVIEWS.quotes.map(([text, name]) => (
+              <article className="quote-card" key={name}>
+                <div className="stars" aria-hidden="true">★★★★★</div>
+                <blockquote>{text}</blockquote>
+                <footer>{name}<small>{REVIEWS.quoteSource}</small></footer>
+              </article>
+            ))}
+          </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+function Faq() {
+  const { FAQ } = SITE;
+  return (
+    <section className="faq" aria-labelledby="faq-title">
+      <div className="container faq-inner">
+        <div>
+          <span className="eyebrow">{FAQ.eyebrow}</span>
+          <h2 id="faq-title">Good <em>questions.</em></h2>
+        </div>
+        <div className="faq-list">
+          {FAQ.items.map(([q, a], i) => (
+            <details key={q} open={i === 0}>
+              <summary>{q}<Plus size={20} aria-hidden="true" /></summary>
+              <p>{a}</p>
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -580,8 +651,9 @@ function Book() {
       <div className="container book-inner">
         <div>
           <span className="eyebrow light">{BOOK.eyebrow}</span>
-          <h2><Title parts={BOOK.title} /></h2>
+          <h2><span>{BOOK.title[0]}</span> <em>{BOOK.title[1]}</em></h2>
           <p>{BOOK.text}</p>
+          <a className="book-call" href={`tel:${PHONE}`}><Phone size={26} /><span><small>CALL AND DESCRIBE THE PROBLEM</small>{PHONE_DISPLAY}</span></a>
           <ul className="book-points">
             {BOOK.points.map((point) => <li key={point}><CheckCircle2 size={18} /> {point}</li>)}
           </ul>
@@ -601,28 +673,24 @@ function Visit() {
       <div className="container visit-inner">
         <div className="visit-info">
           <span className="eyebrow">{VISIT.eyebrow}</span>
-          <h2><Title parts={VISIT.title} /></h2>
+          <h2><span>{VISIT.title[0]}</span> <em>{VISIT.title[1]}</em></h2>
           <div className="visit-blocks">
-            {ADDRESS && (
-              <div>
-                <MapPin size={20} />
-                <span><small>ADDRESS</small>{ADDRESS}<br />{CITY}</span>
-              </div>
-            )}
+            <div>
+              <MapPin size={20} />
+              <span><small>ADDRESS</small>{ADDRESS}<br />{CITY}</span>
+            </div>
             <div>
               <Phone size={20} />
               <span><small>PHONE</small><a href={`tel:${PHONE}`}>{PHONE_DISPLAY}</a>{EMAIL && <><br /><a href={`mailto:${EMAIL}`}>{EMAIL}</a></>}</span>
             </div>
-            {HOURS.length > 0 && (
-              <div>
-                <Clock size={20} />
-                <span><small>HOURS</small>
-                  {HOURS.map(([day, hours]) => <span className="hours-row" key={day}><b>{day}</b>{hours}</span>)}
-                </span>
-              </div>
-            )}
+            <div>
+              <Clock size={20} />
+              <span><small>HOURS</small>
+                {HOURS.map(([day, hours]) => <span className="hours-row" key={day}><b>{day}</b>{hours}</span>)}
+              </span>
+            </div>
           </div>
-          <a className="btn dark" href={directions} target="_blank" rel="noopener noreferrer">Get Directions <ArrowUpRight size={17} /></a>
+          <a className="btn dark" href={directions} target="_blank" rel="noopener noreferrer">Get directions <ArrowUpRight size={17} /></a>
           <p className="areas">{VISIT.areas}</p>
         </div>
         <div className="visit-map">
@@ -636,32 +704,31 @@ function Visit() {
 function Footer() {
   return (
     <footer className="footer">
+      <Fascia />
       <div className="container footer-main">
         <div>
           <Brand />
           <p>{SITE.FOOTER_BLURB}</p>
-          <div className="footer-social">
-            {SITE.SOCIAL_LINKS.filter(({ url }) => url).map(({ name, url, icon: Icon }) => (
-              <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name} title={name}><Icon size={16} /></a>
-            ))}
+          <div className="footer-badges">
+            {SITE.AWARDS.items.map(({ img, title }) => <img key={title} src={img} alt={title} loading="lazy" />)}
           </div>
         </div>
         <div>
           <b>Services</b>
-          {SITE.SERVICES.items.slice(0, 5).map(({ title }) => <a key={title} href="#services">{title}</a>)}
+          {SITE.SERVICES.items.slice(0, 6).map(({ title }) => <a key={title} href="#services">{title}</a>)}
         </div>
         <div>
-          <b>{SITE.NOUN === "shop" ? "Shop" : "Company"}</b>
+          <b>Shop</b>
           {navItems().slice(1).map(([href, label]) => <a key={href} href={href}>{label}</a>)}
           <a href="#book">{SITE.BOOK.nav}</a>
         </div>
         <div>
           <b>Contact</b>
           <a href={`tel:${PHONE}`}>{PHONE_DISPLAY}</a>
-          {EMAIL && <a href={`mailto:${EMAIL}`}>{EMAIL}</a>}
-          {ADDRESS && <span>{ADDRESS}</span>}
-          {ADDRESS && <span>{CITY}</span>}
-          {SITE.HOURS_SHORT && <span>{SITE.HOURS_SHORT}</span>}
+          <span>{ADDRESS}</span>
+          <span>{CITY}</span>
+          <span>{SITE.HOURS_SHORT}</span>
+          {SITE.SOCIAL_LINKS.map(({ name, url }) => <a key={name} href={url} target="_blank" rel="noopener noreferrer">{name} reviews <ArrowUpRight size={13} /></a>)}
         </div>
       </div>
       <div className="container footer-bottom">
@@ -705,12 +772,13 @@ export default function App() {
       <SiteHeader />
       <main id="home">
         <Hero rating={rating} />
-        <Offers />
+        <Awards rating={rating} />
         <Services />
-        <Feature />
+        <Specials />
         <Process />
         <About />
         <Reviews data={reviewData} rating={rating} />
+        <Faq />
         <Book />
         <Visit />
       </main>
